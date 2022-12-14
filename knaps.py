@@ -1,136 +1,230 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
+import numpy as np
+from PIL import Image
+import altair as alt
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
+from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
-from collections import OrderedDict
+from sklearn.metrics import accuracy_score
 from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score, f1_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import BaggingClassifier
-from sklearn.datasets import make_classification
-from sklearn.svm import SVC
+# import warnings
+# warnings.filterwarnings("ignore")
 
-st.write(""" 
-# Cek data
-""")
 
-st.write("=========================================================================")
+st.title("Web Apps - Star Dataset to Predict Stars Types")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Import Data", "Preprocessing", "Modelling", "Evalutions"])
+st.write("================================================================================")
 
-with tab1:
-    st.write("Import Data")
-    data = pd.read_csv("https://raw.githubusercontent.com/Feb11F/dataset/main/credit_score.csv")
-    st.dataframe(data)
+st.write("Name :Isnaini")
+st.write("Nim  :200411100038")
+st.write("Grade: Penambangan Data c")
 
-with tab2:
-    data.head()
+data_set_description, data, preprocessing, modeling, implementation = st.tabs(["Data Set Description", "Data", "Preprocessing", "Modeling", "Implementation"])
 
-    X = data.drop(columns=["risk_rating"])
+with data_set_description:
+    st.write("""# Data Set Description """)
+    st.write("###### Data Set Ini Adalah : Predict Star Types ")
+    st.write("###### Sumber Data Set dari Kaggle : https://www.kaggle.com/datasets/deepu1109/star-dataset")
+    st.write("""Dalam dataset ini terdapat 59 data dan 7 kolom yaitu Temperature_(K),Luminosity(L/Lo),Radius(R/Ro),Absolute_magnitude(Mv),Star_type,Star_Color,Spectral_Class. 
+    """)
+    st.write("""###### DATASET INFO : """)
+    st.write("""1. Ini adalah kumpulan data yang terdiri dari beberapa fitur bintang, diantaranya :  :
+    Absolute Temperature (in K)
+    Relative Luminosity (L/Lo)
+    Relative Radius (R/Ro)
+    Absolute Magnitude (Mv)
+    Star Color (white,Red,Blue,Yellow,yellow-orange etc)
+    Spectral Class (O,B,A,F,G,K,,M)
+    Star Type *(Red Dwarf, Brown Dwarf, White Dwarf, Main Sequence , SuperGiants, HyperGiants)*
+    Lo = 3.828 x 10^26 Watts (Avg Luminosity of Sun)
+    Ro = 6.9551 x 10^8 m (Avg Radius of Sun)
+    """)
+    st.write("""2.Spectral Class :
+    ini akan menjadi outputnya yaitu kelas scpectral.Dalam Aplikasi ini  akan emnghasilkan 7 prediksi  yaitu O,B,A,F,G,K,,M.
+    """)
+    st.write("""Memprediksi Spectral Class (output) :
 
-    X.head()
-
-    # Mengambil kolom Rata-rata overdue dan mentranformasi menggunakan one-hot encoding
-    rata_overdue = pd.get_dummies(X["rata_rata_overdue"], prefix="overdue")
-    X = X.join(rata_overdue)
-
-    X = X.drop(columns="rata_rata_overdue")
-
-    labels = data["risk_rating"]
-    # 
-    KPR_status = pd.get_dummies(X["kpr_aktif"], prefix="KPR")
-    X = X.join(KPR_status)
-
-    # remove "rata_rata_overdue" feature
-    X = X.drop(columns = "kpr_aktif")
-
-    st.write("Menampilkan dataframe yang rata-rata overdue, risk rating dan kpr aktif sudah di drop")
-    st.dataframe(X)
-
-    st.write(" ## Normalisasi")
-    st.write("Normalize feature 'pendapatan_setahun_juta', 'durasi_pinjaman_bulan', 'jumlah_tanggungan'")
-    old_normalize_feature_labels = ['pendapatan_setahun_juta', 'durasi_pinjaman_bulan', 'jumlah_tanggungan']
-    new_normalized_feature_labels = ['norm_pendapatan_setahun_juta', 'norm_durasi_pinjaman_bulan', 'norm_jumlah_tanggungan']
-    normalize_feature = data[old_normalize_feature_labels]
-
-    st.dataframe(normalize_feature)
-
-    scaler = MinMaxScaler()
-
-    scaler.fit(normalize_feature)
-
-    normalized_feature = scaler.transform(normalize_feature)
-
-    normalized_feature_df = pd.DataFrame(normalized_feature, columns = new_normalized_feature_labels)
-
-    st.write("Data setelah dinormalisasi")
-    st.dataframe(normalized_feature_df)
-
-    X = X.drop(columns = old_normalize_feature_labels)
-
-    X = X.join(normalized_feature_df)
-
-    X = X.join(labels)
-
-    st.write("Dataframe X baru")
-    st.dataframe(X)
-
-    subject_lables = ["Unnamed: 0",  "kode_kontrak"]
-    X = X.drop(columns = subject_lables)
-
-    # percent_amount_of_test_data = / HUNDRED_PERCENT
-    percent_amount_of_test_data = 0.3
-
-    st.write("Dataframe X baru yang tidak ada fitur/kolom unnamed: 0 dan kode kontrak")
-    st.dataframe(X)
-    st.write("## Hitung Data")
-    st.write("- Pisahkan kolom risk rating dari data frame")
-    st.write("- Ambil kolom 'risk rating' sebagai target kolom untuk kategori kelas")
-    st.write("- Pisahkan data latih dengan data tes")
-    st.write("""            Spliting Data
-
-                data latih (nilai data)
-                X_train 
-
-                data tes (nilai data)
-                X_test 
-
-                data latih (kelas data)
-                y_train
-
-                data tes (kelas data)
-                y_test""")
-
-    # separate target 
-
-    # values
-    matrices_X = X.iloc[:,0:10].values
-
-    # classes
-    matrices_Y = X.iloc[:,10].values
-
-    X_1 = X.iloc[:,0:10].values
-    Y_1 = X.iloc[:, -1].values
-
-    # X_train, X_test, y_train, y_test = train_test_split(matrices_X, matrices_Y, test_size = percent_amount_of_test_data, random_state=0)
-    X_train, X_test, y_train, y_test = train_test_split(X_1, Y_1, test_size = percent_amount_of_test_data, random_state=0)
-
-    st.write("Menampilkan Y_1")
-    st.write(Y_1)
+    1. O
+    2. B
+    3. A 
+    4. F
+    5. G
+    6. K
+    7. M
     
-    st.write("Menampilkan X_1")
-    st.write(X_1)
-    ### Dictionary to store model and its accuracy
+    """)
+    st.write("###### Aplikasi ini untuk : Star Dataset To Predict Star Types (Kumpulan Data Bintang Untuk Memprediksi Jenis Bintang) ")
+    st.write("###### Source Code Aplikasi ada di Github anda bisa acces di link :https://github.com/isnaini-ina/projekuas ")
+    st.write("###### Untuk Wa saya anda bisa hubungi nomer ini : http://wa.me/082338030179 ")
 
-    model_accuracy = OrderedDict()
+with data:
+    df = pd.read_csv('https://raw.githubusercontent.com/isnaini-ina/projekuas/main/6%20class%20csv.csv')
+    st.dataframe(df)
 
-    ### Dictionary to store model and its precision
+with preprocessing:
+    st.subheader("""Normalisasi Data""")
+    st.write("""Rumus Normalisasi Data :""")
+    st.image('https://i.stack.imgur.com/EuitP.png', use_column_width=False, width=250)
+    st.markdown("""
+    Dimana :
+    - X = data yang akan dinormalisasi atau data asli
+    - min = nilai minimum semua data asli
+    - max = nilai maksimum semua data asli
+    """)
+    
+    
+    df = df.drop(columns=["Star_color"])
 
-    model_precision = OrderedDict()
+    #Mendefinisikan Varible X dan Y
+    X = df[['Temperature_(K)','Luminosity(L/Lo)','Radius(R/Ro)','Absolute_magnitude(Mv)','Star_type']]
+    y = df["Spectral_Class"].values
+    df
+    X
+    df_min = X.min()
+    df_max = X.max()
+    
+    #NORMALISASI NILAI X
+    scaler = MinMaxScaler()
+    #scaler.fit(features)
+    #scaler.transform(features)
+    scaled = scaler.fit_transform(X)
+    features_names = X.columns.copy()
+    #features_names.remove('label')
+    scaled_features = pd.DataFrame(scaled, columns=features_names)
 
-    ### Dictionary to store model and its recall
+    st.subheader('Hasil Normalisasi Data')
+    st.write(scaled_features)
 
-    model_recall = OrderedDict()
+    st.subheader('Target Label')
+    dumies = pd.get_dummies(df.Spectral_Class).columns.values.tolist()
+    dumies = np.array(dumies)
+
+    labels = pd.DataFrame({
+        '1' : [dumies[0]],
+        '2' : [dumies[1]],
+        '3' : [dumies[2]],
+        '4' : [dumies[3]],
+        '5' : [dumies[4]],
+        
+        
+    })
+
+    st.write(labels)
+
+   
+with modeling:
+    training, test = train_test_split(scaled_features,test_size=0.2, random_state=1)#Nilai X training dan Nilai X testing
+    training_label, test_label = train_test_split(y, test_size=0.2, random_state=1)#Nilai Y training dan Nilai Y testing
+    with st.form("modeling"):
+        st.subheader('Modeling')
+        st.write("Pilihlah model yang akan dilakukan pengecekkan akurasi:")
+        naive = st.checkbox('Gaussian Naive Bayes')
+        k_nn = st.checkbox('K-Nearest Neighboor')
+        destree = st.checkbox('Decission Tree')
+        submitted = st.form_submit_button("Submit")
+
+        
+        # NB
+        GaussianNB(priors=None)
+
+        # Fitting Naive Bayes Classification to the Training set with linear kernel
+        gaussian = GaussianNB()
+        gaussian = gaussian.fit(training, training_label)
+
+        # Predicting the Test set results
+        y_pred = gaussian.predict(test)
+    
+        y_compare = np.vstack((test_label,y_pred)).T
+        gaussian.predict_proba(test)
+        gaussian_akurasi = round(100 * accuracy_score(test_label, y_pred))
+        # akurasi = 10
+
+
+        #KNN
+        K=10
+        knn=KNeighborsClassifier(n_neighbors=K)
+        knn.fit(training,training_label)
+        knn_predict=knn.predict(test)
+
+        knn_akurasi = round(100 * accuracy_score(test_label,knn_predict))
+
+        #Decission Tree
+        dt = DecisionTreeClassifier()
+        dt.fit(training, training_label)
+        # prediction
+        dt_pred = dt.predict(test)
+        #Accuracy
+        dt_akurasi = round(100 * accuracy_score(test_label,dt_pred))
+
+        if submitted :
+            if naive :
+                st.write('Model Naive Bayes accuracy score: {0:0.2f}'. format(gaussian_akurasi))
+            if k_nn :
+                st.write("Model KNN accuracy score : {0:0.2f}" . format(knn_akurasi))
+            if destree :
+                st.write("Model Decision Tree accuracy score : {0:0.2f}" . format(dt_akurasi))
+        
+        grafik = st.form_submit_button("Grafik akurasi semua model")
+        if grafik:
+            data = pd.DataFrame({
+                'Akurasi' : [gaussian_akurasi, knn_akurasi, dt_akurasi],
+                'Model' : ['Gaussian Naive Bayes', 'K-NN', 'Decission Tree'],
+            })
+
+            chart = (
+                alt.Chart(data)
+                .mark_bar()
+                .encode(
+                    alt.X("Akurasi"),
+                    alt.Y("Model"),
+                    alt.Color("Akurasi"),
+                    alt.Tooltip(["Akurasi", "Model"]),
+                )
+                .interactive()
+            )
+            st.altair_chart(chart,use_container_width=True)
+            
+  
+with implementation:
+    with st.form("my_form"):
+        st.subheader("Implementasi") 
+        suhu = st.number_input('Masukkan Temperature_(K)  : ')
+        kilau = st.number_input('Masukkan Luminosity(L/Lo) : ')
+        jarak = st.number_input('Masukkan Radius(R/Ro)  : ')
+        magnitudo_mutlak = st.number_input('Masukkan Absolute_magnitude(Mv)  : ')
+        tipe_bintang = st.number_input('Masukkan Star_type : ')
+        model = st.selectbox('Pilihlah model yang akan anda gunakan untuk melakukan prediksi?',
+                ('Gaussian Naive Bayes', 'K-NN', 'Decision Tree'))
+
+        prediksi = st.form_submit_button("Submit")
+        if prediksi:
+            inputs = np.array([
+                'suhu',
+                'kilau',
+                'jarak',
+                'magnitudo_mutlak',
+                'tipe_bintang'
+            ])
+
+            df_min = X.min()
+            df_max = X.max()
+            input_norm = ((inputs - df_min) / (df_max - df_min))
+            input_norm = np.array(input_norm).reshape(1, -1)
+
+            if model == 'Gaussian Naive Bayes':
+                mod = gaussian
+            if model == 'K-NN':
+                mod = knn 
+            if model == 'Decision Tree':
+                mod = dt
+
+            input_pred = mod.predict(input_norm)
+
+
+            st.subheader('Hasil Prediksi')
+            st.write('Menggunakan Pemodelan :', model)
+
+            st.write(input_pred)
